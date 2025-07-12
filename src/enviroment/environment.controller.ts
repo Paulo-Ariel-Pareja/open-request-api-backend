@@ -6,6 +6,7 @@ import {
   Patch,
   Param,
   Delete,
+  Query,
 } from '@nestjs/common';
 import { EnvironmentService } from './environment.service';
 import { CreateEnvironmentDto } from './dto/create-environment.dto';
@@ -22,6 +23,11 @@ export class EnvironmentController {
   @Get()
   findAll() {
     return this.enviromentService.findAll();
+  }
+
+  @Get('search')
+  searchCollection(@Query('q') search: string) {
+    return this.enviromentService.searchEnv(search);
   }
 
   @Patch(':id')
