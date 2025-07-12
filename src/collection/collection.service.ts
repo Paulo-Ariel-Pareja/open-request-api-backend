@@ -13,6 +13,7 @@ import { CreateRequestDto } from './dto/create-request.dto';
 
 @Injectable()
 export class CollectionService {
+  private readonly limitResults = 100;
   constructor(@InjectModel(Collection.name) private db: Model<Collection>) {}
 
   async createCollection(body: CreateCollectionDto) {
@@ -37,6 +38,7 @@ export class CollectionService {
           requests: 0,
         },
       },
+      { $limit: this.limitResults },
     ]);
   }
 
@@ -69,6 +71,7 @@ export class CollectionService {
             requests: 0,
           },
         },
+        { $limit: this.limitResults },
       ]);
     } catch (error) {
       const message = error.message || 'Collection not found';
