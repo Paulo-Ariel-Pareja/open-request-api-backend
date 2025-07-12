@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { Model } from 'mongoose';
 import { InjectModel } from '@nestjs/mongoose';
 import { CreateEnvironmentDto } from './dto/create-environment.dto';
@@ -19,6 +19,21 @@ export class EnvironmentService {
 
   findAll() {
     return this.db.find();
+  }
+
+  searchEnv(search: string) {
+    try {
+      return this.db.aggregate([
+        {
+          $match: {
+            name: { $regex: search, $options: 'i' },
+          },
+        },
+      ]);
+    } catch (error) {
+      const message = error.message || 'Environment not found';
+      throw new NotFoundException(message);
+    }
   }
 
   update(id: string, body: CreateEnvironmentDto) {
