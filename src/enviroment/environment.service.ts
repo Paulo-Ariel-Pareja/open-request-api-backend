@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { Model } from 'mongoose';
 import { InjectModel } from '@nestjs/mongoose';
 import { CreateEnvironmentDto } from './dto/create-environment.dto';
@@ -6,6 +10,7 @@ import { Environment } from './entities/enviroment.entity';
 
 @Injectable()
 export class EnvironmentService {
+  private readonly limitResults = 100;
   constructor(@InjectModel(Environment.name) private db: Model<Environment>) {}
 
   async create(body: CreateEnvironmentDto) {
@@ -18,7 +23,7 @@ export class EnvironmentService {
   }
 
   findAll() {
-    return this.db.find();
+    return this.db.find({}, {}, { limit: this.limitResults });
   }
 
   searchEnv(search: string) {
@@ -29,6 +34,7 @@ export class EnvironmentService {
             name: { $regex: search, $options: 'i' },
           },
         },
+        { $limit: this.limitResults },
       ]);
     } catch (error) {
       const message = error.message || 'Environment not found';
