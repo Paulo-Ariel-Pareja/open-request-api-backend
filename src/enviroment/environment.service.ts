@@ -23,7 +23,11 @@ export class EnvironmentService {
   }
 
   findAll() {
-    return this.db.find({}, {}, { limit: this.limitResults });
+    return this.db.find(
+      {},
+      {},
+      { sort: { name: 1 }, limit: this.limitResults },
+    );
   }
 
   searchEnv(search: string) {
@@ -34,6 +38,7 @@ export class EnvironmentService {
             name: { $regex: search, $options: 'i' },
           },
         },
+        { $sort: { name: 1 } },
         { $limit: this.limitResults },
       ]);
     } catch (error) {

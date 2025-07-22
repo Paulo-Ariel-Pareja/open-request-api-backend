@@ -7,10 +7,18 @@ import {
   Delete,
   Patch,
   Query,
+  UseInterceptors,
+  UploadedFile,
+  BadRequestException,
+  ParseFilePipe,
+  FileTypeValidator,
 } from '@nestjs/common';
+import { Express } from 'express';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { CollectionService } from './collection.service';
 import { CreateCollectionDto } from './dto/create-collection.dto';
 import { CreateRequestDto } from './dto/create-request.dto';
+import { JsonFilePipe } from './pipe/json-file.pipe';
 
 @Controller('collection')
 export class CollectionController {
@@ -44,6 +52,18 @@ export class CollectionController {
   @Delete(':id')
   removeCollection(@Param('id') id: string) {
     return this.collectionService.removeCollection(id);
+  }
+
+  @Post('import')
+  @UseInterceptors(FileInterceptor('collection'))
+  importFile(
+    @UploadedFile(
+      new JsonFilePipe()
+    )
+    collection: Express.Multer.File,
+  ) {
+    if (!collection) throw new BadRequestException('File is required');
+    return this.collectionService.importFile(collection);
   }
 
   @Post(':id/request')
