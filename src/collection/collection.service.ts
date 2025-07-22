@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-unsafe-argument */
+/* eslint-disable @typescript-eslint/no-unsafe-call */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import {
@@ -10,6 +12,11 @@ import { InjectModel } from '@nestjs/mongoose';
 import { CreateCollectionDto } from './dto/create-collection.dto';
 import { Collection } from './entities/collection.entity';
 import { CreateRequestDto } from './dto/create-request.dto';
+import {
+  extractBody,
+  parseUrlObject,
+} from './helper/collection-transform.helper';
+import { PmCollection, PmItem } from './dto/import.dto';
 
 @Injectable()
 export class CollectionService {
@@ -38,6 +45,7 @@ export class CollectionService {
           requests: 0,
         },
       },
+      { $sort: { name: 1 } },
       { $limit: this.limitResults },
     ]);
   }
@@ -71,6 +79,7 @@ export class CollectionService {
             requests: 0,
           },
         },
+        { $sort: { name: 1 } },
         { $limit: this.limitResults },
       ]);
     } catch (error) {
@@ -149,5 +158,77 @@ export class CollectionService {
       { new: true },
     );
     return toReturn;
+  }
+
+  async importFile(file: Express.Multer.File) {
+    let json: PmCollection;
+    try {
+      json = JSON.parse(file.buffer.toString());
+    } catch (error) {
+      throw new BadRequestException('File is not a valid JSON');
+    }
+
+    try {
+      const { name, description, requests } =
+        this.transformCollectionData(json);
+      const newCollection = await this.createCollection({ name, description });
+      const id = newCollection._id;
+      const requestToCreate = requests.map((r) => {
+        return {
+          collectionId: id,
+          ...r,
+        };
+      });
+      await this.db.findOneAndUpdate(
+        { _id: id },
+        { $push: { requests: requestToCreate } },
+        { new: true },
+      );
+      return;
+    } catch (error) {
+      throw new BadRequestException(
+        'An unexpected error occurred while importing the file or saving it.',
+      );
+    }
+  }
+
+  private transformCollectionData(collection: PmCollection) {
+    const postman: PmCollection = collection;
+    const requests: CreateRequestDto[] = [];
+
+    function flattenItems(items: PmItem[], parentPath: string[] = []) {
+      for (const item of items) {
+        if (item.item && Array.isArray(item.item)) {
+          flattenItems(item.item, [...parentPath, item.name]);
+        } else if (item.request) {
+          console.log('item.request.url', item.request.url);
+          const url =
+            typeof item.request.url === 'string'
+              ? item.request.url
+              : parseUrlObject(item.request.url);
+
+          const request: CreateRequestDto = {
+            name: item.name,
+            method: item.request.method || 'GET',
+            url,
+            body: extractBody(item.request),
+            bodyType: item.request.body?.mode || 'raw',
+            preScript: '',
+            postScript: '',
+            tests: '',
+          };
+
+          requests.push(request);
+        }
+      }
+    }
+
+    flattenItems(postman.item);
+
+    return {
+      name: postman.info.name,
+      description: postman.info.description || '',
+      requests,
+    };
   }
 }
