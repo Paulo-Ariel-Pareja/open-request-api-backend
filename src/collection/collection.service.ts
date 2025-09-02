@@ -38,14 +38,18 @@ export class CollectionService {
       {
         $addFields: {
           size: { $size: '$requests' },
+          nameLower: { $toLower: '$name' },
         },
+      },
+      {
+        $sort: { nameLower: 1 },
       },
       {
         $project: {
           requests: 0,
+          nameLower: 0,
         },
       },
-      { $sort: { name: 1 } },
       { $limit: this.limitResults },
     ]);
   }
@@ -72,14 +76,18 @@ export class CollectionService {
         {
           $addFields: {
             size: { $size: '$requests' },
+            nameLower: { $toLower: '$name' },
           },
+        },
+        {
+          $sort: { nameLower: 1 },
         },
         {
           $project: {
             requests: 0,
+            nameLower: 0,
           },
         },
-        { $sort: { name: 1 } },
         { $limit: this.limitResults },
       ]);
     } catch (error) {
