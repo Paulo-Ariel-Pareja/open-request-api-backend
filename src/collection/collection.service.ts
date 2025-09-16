@@ -70,7 +70,10 @@ export class CollectionService {
       return this.db.aggregate([
         {
           $match: {
-            name: { $regex: search, $options: 'i' },
+            $or: [
+              { name: { $regex: search, $options: 'i' } },
+              { description: { $regex: search, $options: 'i' } },
+            ],
           },
         },
         {
